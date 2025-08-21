@@ -52,8 +52,6 @@ const LogoIcon = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${theme.typography.fontSize.xl};
-  font-weight: ${theme.typography.fontWeight.bold};
   color: white;
   box-shadow: ${theme.shadows.glow};
   position: relative;
@@ -73,10 +71,19 @@ const LogoIcon = styled.div`
     opacity: 0.3;
   }
 
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+
   @media (max-width: ${theme.breakpoints.mobile}) {
     width: 40px;
     height: 40px;
-    font-size: ${theme.typography.fontSize.lg};
+    
+    svg {
+      width: 20px;
+      height: 20px;
+    }
   }
 `;
 
@@ -197,7 +204,12 @@ export const Header: FC<HeaderProps> = ({ onUploadClick, photoCount = 0 }) => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <LogoIcon>📷</LogoIcon>
+          <LogoIcon>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+              <circle cx="12" cy="13" r="3"/>
+            </svg>
+          </LogoIcon>
           <LogoText>PocketPic</LogoText>
         </LogoSection>
 

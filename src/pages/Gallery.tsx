@@ -1,12 +1,15 @@
 import type { FC } from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Layout } from '../components/Layout';
 import { PhotoGrid } from '../components/PhotoGrid';
 import { FloatingActionButton } from '../components/FloatingActionButton';
+import { UploadModal } from '../components/UploadModal';
 import type { Photo } from '../types';
 import { theme } from '../styles/theme';
+import { photoService, testPocketBase } from '../lib/pocketbase';
+import pb from '../lib/pocketbase';
 
 const GalleryContainer = styled.div`
   flex: 1;
@@ -170,71 +173,86 @@ const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   }
 `;
 
-// 임시 데이터 (나중에 실제 데이터로 교체)
-const mockPhotos: Photo[] = [
-  {
-    id: '1',
-    url: 'https://picsum.photos/800/800?random=1',
-    thumbnailUrl: 'https://picsum.photos/400/400?random=1',
-    title: 'Sunset Paradise',
-    uploadedAt: new Date('2024-01-15'),
-    size: 1024000,
-    mimeType: 'image/jpeg',
-  },
-  {
-    id: '2',
-    url: 'https://picsum.photos/800/800?random=2',
-    thumbnailUrl: 'https://picsum.photos/400/400?random=2',
-    title: 'Urban Nights',
-    uploadedAt: new Date('2024-01-14'),
-    size: 2048000,
-    mimeType: 'image/jpeg',
-  },
-  {
-    id: '3',
-    url: 'https://picsum.photos/800/800?random=3',
-    thumbnailUrl: 'https://picsum.photos/400/400?random=3',
-    title: 'Mountain Vista',
-    uploadedAt: new Date('2024-01-13'),
-    size: 1536000,
-    mimeType: 'image/jpeg',
-  },
-  {
-    id: '4',
-    url: 'https://picsum.photos/800/800?random=4',
-    thumbnailUrl: 'https://picsum.photos/400/400?random=4',
-    title: 'Ocean Waves',
-    uploadedAt: new Date('2024-01-12'),
-    size: 1800000,
-    mimeType: 'image/jpeg',
-  },
-  {
-    id: '5',
-    url: 'https://picsum.photos/800/800?random=5',
-    thumbnailUrl: 'https://picsum.photos/400/400?random=5',
-    title: 'Forest Path',
-    uploadedAt: new Date('2024-01-11'),
-    size: 1200000,
-    mimeType: 'image/jpeg',
-  },
-  {
-    id: '6',
-    url: 'https://picsum.photos/800/800?random=6',
-    thumbnailUrl: 'https://picsum.photos/400/400?random=6',
-    title: 'City Lights',
-    uploadedAt: new Date('2024-01-10'),
-    size: 1400000,
-    mimeType: 'image/jpeg',
-  },
-];
+// PocketBase 데이터를 UI용 Photo 타입으로 변환
+const transformPhoto = (record: any): Photo => ({
+  ...record,
+  url: pb.files.getUrl(record, record.image),
+  thumbnailUrl: record.thumbnail 
+    ? pb.files.getUrl(record, record.thumbnail)
+    : pb.files.getUrl(record, record.image, { thumb: '400x400' }),
+  uploadedAt: new Date(record.created),
+});
 
 export const Gallery: FC = () => {
-  const [photos] = useState<Photo[]>(mockPhotos);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // PocketBase에서 사진 데이터 로드
+  const loadPhotos = async () => {
+    try {
+      console.log('Reloading photos...');
+      setIsLoading(true);
+      setError(null);
+      const records = await photoService.getPhotos();
+      const transformedPhotos = records.map(transformPhoto);
+      console.log('Reloaded photos:', transformedPhotos.length);
+      setPhotos(transformedPhotos);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load photos');
+      console.error('Error loading photos:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 데이터 로드
+  useEffect(() => {
+    let isCancelled = false;
+    
+    const init = async () => {
+      if (isCancelled) return;
+      
+      console.log('Loading photos...');
+      try {
+        setIsLoading(true);
+        setError(null);
+        const records = await photoService.getPhotos();
+        
+        if (!isCancelled) {
+          const transformedPhotos = records.map(transformPhoto);
+          console.log('Loaded photos:', transformedPhotos.length);
+          setPhotos(transformedPhotos);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load photos');
+          console.error('Error loading photos:', err);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    init();
+    
+    // Cleanup function
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   const handleUploadClick = () => {
-    console.log('업로드 버튼 클릭');
-    // TODO: 업로드 모달 열기
+    setIsUploadModalOpen(true);
+  };
+
+  const handleUploadComplete = () => {
+    // 업로드 완료 후 사진 목록 새로고침
+    loadPhotos();
   };
 
   const handlePhotoClick = (photo: Photo) => {
@@ -242,7 +260,7 @@ export const Gallery: FC = () => {
     // TODO: 사진 상세 보기 모달 열기
   };
 
-  const totalSize = photos.reduce((sum, photo) => sum + photo.size, 0);
+  const totalSize = photos.reduce((sum, photo) => sum + (photo.size || 0), 0);
   const formatSize = (bytes: number) => {
     const gb = bytes / (1024 * 1024 * 1024);
     return `${gb.toFixed(1)}GB`;
@@ -254,6 +272,37 @@ export const Gallery: FC = () => {
     { id: 'favorites', label: 'Favorites' },
     { id: 'shared', label: 'Shared' },
   ];
+
+  if (error) {
+    return (
+      <Layout onUploadClick={handleUploadClick} photoCount={photos.length}>
+        <GalleryContainer>
+          <div style={{ 
+            textAlign: 'center', 
+            padding: theme.spacing['4xl'],
+            color: theme.colors.error 
+          }}>
+            <h2>Error loading photos</h2>
+            <p>{error}</p>
+            <button 
+              onClick={loadPhotos}
+              style={{
+                marginTop: theme.spacing.lg,
+                padding: `${theme.spacing.md} ${theme.spacing.xl}`,
+                background: theme.colors.gradient.primary,
+                color: 'white',
+                border: 'none',
+                borderRadius: theme.borderRadius.lg,
+                cursor: 'pointer'
+              }}
+            >
+              Try Again
+            </button>
+          </div>
+        </GalleryContainer>
+      </Layout>
+    );
+  }
 
   return (
     <Layout onUploadClick={handleUploadClick} photoCount={photos.length}>
@@ -310,14 +359,30 @@ export const Gallery: FC = () => {
           ))}
         </FilterSection>
         
-        <PhotoGrid 
-          photos={photos} 
-          onPhotoClick={handlePhotoClick}
-          onUploadClick={handleUploadClick}
-        />
+        {isLoading ? (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: theme.spacing['4xl'],
+            color: theme.colors.text.secondary 
+          }}>
+            <p>Loading photos...</p>
+          </div>
+        ) : (
+          <PhotoGrid 
+            photos={photos} 
+            onPhotoClick={handlePhotoClick}
+            onUploadClick={handleUploadClick}
+          />
+        )}
       </GalleryContainer>
       
       <FloatingActionButton onClick={handleUploadClick} />
+      
+      <UploadModal 
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUploadComplete={handleUploadComplete}
+      />
     </Layout>
   );
 };

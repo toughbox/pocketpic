@@ -192,11 +192,16 @@ const EmptyIcon = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${theme.typography.fontSize['4xl']};
   margin-bottom: ${theme.spacing.xl};
   color: white;
   box-shadow: ${theme.shadows.glowPurple};
   position: relative;
+
+  svg {
+    width: 60px;
+    height: 60px;
+    stroke-width: 1.5;
+  }
 
   &::after {
     content: '';
@@ -284,7 +289,11 @@ export const PhotoGrid: FC<PhotoGridProps> = ({ photos, onPhotoClick, onUploadCl
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
           >
-            📷
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+              <circle cx="12" cy="13" r="3"/>
+              <path d="M12 10v6M9 13h6" opacity="0.6"/>
+            </svg>
           </EmptyIcon>
           <EmptyTitle>Your Gallery Awaits</EmptyTitle>
           <EmptyDescription>
@@ -332,8 +341,11 @@ export const PhotoGrid: FC<PhotoGridProps> = ({ photos, onPhotoClick, onUploadCl
                 e.stopPropagation();
                 console.log('Like photo:', photo.id);
               }}
+              title="Like"
             >
-              ♥
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
             </ActionButton>
             <ActionButton
               whileHover={{ scale: 1.1 }}
@@ -342,16 +354,19 @@ export const PhotoGrid: FC<PhotoGridProps> = ({ photos, onPhotoClick, onUploadCl
                 e.stopPropagation();
                 console.log('Share photo:', photo.id);
               }}
+              title="Share"
             >
-              ↗
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M7 17L17 7M17 7H7M17 7V17"/>
+              </svg>
             </ActionButton>
           </PhotoActions>
           
           <PhotoInfo>
             {photo.title && <PhotoTitle>{photo.title}</PhotoTitle>}
             <PhotoMeta>
-              <PhotoDate>{formatDate(photo.uploadedAt)}</PhotoDate>
-              <PhotoSize>{formatFileSize(photo.size)}</PhotoSize>
+              <PhotoDate>{photo.uploadedAt ? formatDate(photo.uploadedAt) : formatDate(new Date(photo.created))}</PhotoDate>
+              <PhotoSize>{formatFileSize(photo.size || 0)}</PhotoSize>
             </PhotoMeta>
           </PhotoInfo>
         </PhotoCard>

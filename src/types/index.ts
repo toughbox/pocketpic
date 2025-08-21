@@ -1,14 +1,19 @@
 export interface Photo {
   id: string;
-  url: string;
-  thumbnailUrl?: string;
   title?: string;
   description?: string;
-  uploadedAt: Date;
-  size: number;
-  mimeType: string;
+  image: string;
+  thumbnail?: string;
+  size?: number;
+  mimeType?: string;
   width?: number;
   height?: number;
+  created: string;
+  updated: string;
+  // 계산된 속성 (UI용)
+  url?: string;
+  thumbnailUrl?: string;
+  uploadedAt?: Date;
 }
 
 export interface UploadProgress {

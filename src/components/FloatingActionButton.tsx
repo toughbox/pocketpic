@@ -70,83 +70,23 @@ const PulseRing = styled(motion.div)`
   z-index: -2;
 `;
 
-const CameraIcon = styled.div`
-  width: 32px;
-  height: 32px;
+const PlusIcon = styled.div`
   position: relative;
   z-index: 1;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 8px;
-    left: 4px;
-    width: 24px;
-    height: 16px;
-    border: 2.5px solid currentColor;
-    border-radius: ${theme.borderRadius.sm};
-    background: transparent;
-  }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 12px;
-    left: 8px;
-    width: 16px;
-    height: 8px;
-    border: 2px solid currentColor;
-    border-radius: ${theme.borderRadius.round};
-    background: transparent;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  /* 플래시 표시 */
-  & > span {
-    position: absolute;
-    top: 4px;
-    right: 2px;
-    width: 6px;
-    height: 6px;
-    background: currentColor;
-    border-radius: 2px;
-    
-    &::before {
-      content: '';
-      position: absolute;
-      top: -2px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 3px solid transparent;
-      border-right: 3px solid transparent;
-      border-bottom: 4px solid currentColor;
-    }
+  svg {
+    width: 28px;
+    height: 28px;
+    stroke-width: 2.5;
   }
 
   @media (max-width: ${theme.breakpoints.mobile}) {
-    width: 28px;
-    height: 28px;
-    
-    &::before {
-      top: 6px;
-      left: 2px;
-      width: 20px;
-      height: 14px;
-    }
-    
-    &::after {
-      top: 10px;
-      left: 6px;
-      width: 12px;
-      height: 6px;
-    }
-
-    & > span {
-      top: 2px;
-      right: 1px;
-      width: 5px;
-      height: 5px;
+    svg {
+      width: 24px;
+      height: 24px;
     }
   }
 `;
@@ -222,9 +162,12 @@ export const FloatingActionButton: FC<FloatingActionButtonProps> = ({
           }}
         />
         
-        <CameraIcon>
-          <span />
-        </CameraIcon>
+        <PlusIcon>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </PlusIcon>
 
         {showTooltip && (
           <Tooltip
