@@ -6,9 +6,10 @@ import { Layout } from '../components/Layout';
 import { PhotoGrid } from '../components/PhotoGrid';
 import { FloatingActionButton } from '../components/FloatingActionButton';
 import { UploadModal } from '../components/UploadModal';
+import { PhotoDetailModal } from '../components/PhotoDetailModal';
 import type { Photo } from '../types';
 import { theme } from '../styles/theme';
-import { photoService, testPocketBase } from '../lib/pocketbase';
+import { photoService } from '../lib/pocketbase';
 import pb from '../lib/pocketbase';
 
 const GalleryContainer = styled.div`
@@ -188,6 +189,7 @@ export const Gallery: FC = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // PocketBase에서 사진 데이터 로드
@@ -257,7 +259,19 @@ export const Gallery: FC = () => {
 
   const handlePhotoClick = (photo: Photo) => {
     console.log('사진 클릭:', photo);
-    // TODO: 사진 상세 보기 모달 열기
+    setSelectedPhoto(photo);
+  };
+
+  const handlePhotoDelete = async (photo: Photo) => {
+    try {
+      // 목록에서 삭제된 사진 제거
+      setPhotos(prevPhotos => prevPhotos.filter(p => p.id !== photo.id));
+      console.log('사진 삭제 완료:', photo.id);
+    } catch (error) {
+      console.error('사진 삭제 실패:', error);
+      // 삭제 실패시 목록 새로고침
+      loadPhotos();
+    }
   };
 
   const totalSize = photos.reduce((sum, photo) => sum + (photo.size || 0), 0);
@@ -382,6 +396,14 @@ export const Gallery: FC = () => {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUploadComplete={handleUploadComplete}
+      />
+      
+      <PhotoDetailModal
+        photo={selectedPhoto}
+        photos={photos}
+        isOpen={!!selectedPhoto}
+        onClose={() => setSelectedPhoto(null)}
+        onDelete={handlePhotoDelete}
       />
     </Layout>
   );
