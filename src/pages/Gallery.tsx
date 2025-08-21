@@ -4,12 +4,13 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Layout } from '../components/Layout';
 import { PhotoGrid } from '../components/PhotoGrid';
-import { FloatingActionButton } from '../components/FloatingActionButton';
+
 import { UploadModal } from '../components/UploadModal';
 import { PhotoDetailModal } from '../components/PhotoDetailModal';
+import { AuthModal } from '../components/AuthModal';
 import type { Photo } from '../types';
 import { theme } from '../styles/theme';
-import { photoService } from '../lib/pocketbase';
+import { photoService, authService } from '../lib/pocketbase';
 import pb from '../lib/pocketbase';
 
 const GalleryContainer = styled.div`
@@ -190,6 +191,8 @@ export const Gallery: FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // PocketBase에서 사진 데이터 로드
@@ -210,12 +213,23 @@ export const Gallery: FC = () => {
     }
   };
 
-  // 컴포넌트 마운트 시 데이터 로드
+  // 컴포넌트 마운트 시 인증 상태 확인 및 데이터 로드
   useEffect(() => {
     let isCancelled = false;
     
     const init = async () => {
       if (isCancelled) return;
+      
+      // 인증 상태 확인
+      const authenticated = authService.isAuthenticated();
+      setIsAuthenticated(authenticated);
+      console.log('Auth status:', authenticated);
+      
+      if (!authenticated) {
+        setIsAuthModalOpen(true);
+        setIsLoading(false);
+        return;
+      }
       
       console.log('Loading photos...');
       try {
@@ -228,10 +242,17 @@ export const Gallery: FC = () => {
           console.log('Loaded photos:', transformedPhotos.length);
           setPhotos(transformedPhotos);
         }
-      } catch (err) {
+      } catch (err: any) {
         if (!isCancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load photos');
-          console.error('Error loading photos:', err);
+          // 401 오류면 인증 모달 표시
+          if (err.status === 401) {
+            console.log('Authentication required');
+            setIsAuthenticated(false);
+            setIsAuthModalOpen(true);
+          } else {
+            setError(err instanceof Error ? err.message : 'Failed to load photos');
+            console.error('Error loading photos:', err);
+          }
         }
       } finally {
         if (!isCancelled) {
@@ -242,14 +263,38 @@ export const Gallery: FC = () => {
     
     init();
     
+    // 인증 상태 변경 리스너
+    const unsubscribe = authService.onAuthChange((user) => {
+      console.log('Auth changed:', user);
+      setIsAuthenticated(!!user);
+      if (user) {
+        setIsAuthModalOpen(false);
+        // 로그인 성공시 사진 다시 로드
+        init();
+      }
+    });
+    
     // Cleanup function
     return () => {
       isCancelled = true;
+      unsubscribe();
     };
   }, []);
 
   const handleUploadClick = () => {
+    if (!isAuthenticated) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     setIsUploadModalOpen(true);
+  };
+
+  const handleAuthSuccess = () => {
+    console.log('Authentication successful');
+    setIsAuthenticated(true);
+    setIsAuthModalOpen(false);
+    // 인증 성공 후 사진 목록 로드
+    loadPhotos();
   };
 
   const handleUploadComplete = () => {
@@ -390,7 +435,7 @@ export const Gallery: FC = () => {
         )}
       </GalleryContainer>
       
-      <FloatingActionButton onClick={handleUploadClick} />
+
       
       <UploadModal 
         isOpen={isUploadModalOpen}
@@ -404,6 +449,12 @@ export const Gallery: FC = () => {
         isOpen={!!selectedPhoto}
         onClose={() => setSelectedPhoto(null)}
         onDelete={handlePhotoDelete}
+      />
+      
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
       />
     </Layout>
   );

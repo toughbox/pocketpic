@@ -1,7 +1,9 @@
 import type { FC } from 'react';
+import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { theme } from '../styles/theme';
+import { authService, type User } from '../lib/pocketbase';
 
 const HeaderContainer = styled.header`
   position: sticky;
@@ -109,6 +111,42 @@ const ActionSection = styled.div`
   gap: ${theme.spacing.md};
 `;
 
+const UserSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing.sm};
+  padding: ${theme.spacing.sm} ${theme.spacing.md};
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid ${theme.colors.border};
+  border-radius: ${theme.borderRadius.lg};
+  
+  @media (max-width: ${theme.breakpoints.mobile}) {
+    display: none;
+  }
+`;
+
+const UserName = styled.span`
+  font-size: ${theme.typography.fontSize.sm};
+  color: ${theme.colors.text.primary};
+  font-weight: ${theme.typography.fontWeight.medium};
+`;
+
+const LogoutButton = styled(motion.button)`
+  padding: ${theme.spacing.xs} ${theme.spacing.sm};
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid ${theme.colors.border};
+  border-radius: ${theme.borderRadius.md};
+  color: ${theme.colors.text.secondary};
+  font-size: ${theme.typography.fontSize.xs};
+  cursor: pointer;
+  transition: all ${theme.transitions.fast};
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: ${theme.colors.text.primary};
+  }
+`;
+
 const ActionButton = styled(motion.button)`
   display: flex;
   align-items: center;
@@ -196,6 +234,25 @@ interface HeaderProps {
 }
 
 export const Header: FC<HeaderProps> = ({ onUploadClick, photoCount = 0 }) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // 현재 사용자 정보 가져오기
+    setCurrentUser(authService.getCurrentUser());
+    
+    // 인증 상태 변경 리스너
+    const unsubscribe = authService.onAuthChange((user) => {
+      setCurrentUser(user);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const handleLogout = () => {
+    authService.logout();
+    window.location.reload(); // 페이지 새로고침으로 상태 초기화
+  };
+
   return (
     <HeaderContainer>
       <HeaderContent>
@@ -224,6 +281,19 @@ export const Header: FC<HeaderProps> = ({ onUploadClick, photoCount = 0 }) => {
               <StatLabel>Storage</StatLabel>
             </StatItem>
           </StatsSection>
+
+          {currentUser && (
+            <UserSection>
+              <UserName>{currentUser.name || currentUser.email}</UserName>
+              <LogoutButton
+                onClick={handleLogout}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Logout
+              </LogoutButton>
+            </UserSection>
+          )}
 
           <ActionButton
             onClick={onUploadClick}

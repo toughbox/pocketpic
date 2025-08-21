@@ -34,6 +34,21 @@ export interface PhotoUpload {
   height?: number;
 }
 
+// 사용자 인증 타입 정의
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  avatar?: string;
+  created: string;
+  updated: string;
+}
+
+export interface AuthData {
+  user: User;
+  token: string;
+}
+
 // PocketBase 연결 테스트 (간단한 버전)
 export const testPocketBase = async () => {
   try {
@@ -218,5 +233,80 @@ export const photoService = {
     }
     // 썸네일이 없으면 원본 이미지의 썸네일 버전 생성
     return pb.files.getUrl(record, record.image, { thumb: '300x300' });
+  },
+};
+
+// 인증 서비스
+export const authService = {
+  // 현재 사용자 정보 가져오기
+  getCurrentUser(): User | null {
+    return pb.authStore.model as unknown as User | null;
+  },
+
+  // 인증 상태 확인
+  isAuthenticated(): boolean {
+    return pb.authStore.isValid;
+  },
+
+  // 로그인
+  async login(email: string, password: string): Promise<AuthData> {
+    try {
+      const authData = await pb.collection('users').authWithPassword(email, password);
+      console.log('Login successful:', authData.record.email);
+      return {
+        user: authData.record as unknown as User,
+        token: authData.token,
+      };
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      throw new Error(error.data?.message || 'Login failed');
+    }
+  },
+
+  // 회원가입
+  async register(email: string, password: string, passwordConfirm: string, name?: string): Promise<AuthData> {
+    try {
+      const userData = {
+        email,
+        password,
+        passwordConfirm,
+        name: name || email.split('@')[0],
+      };
+
+      await pb.collection('users').create(userData);
+      console.log('User created:', email);
+
+      // 생성 후 바로 로그인
+      const authData = await pb.collection('users').authWithPassword(email, password);
+      
+      return {
+        user: authData.record as unknown as User,
+        token: authData.token,
+      };
+    } catch (error: any) {
+      console.error('Registration failed:', error);
+      
+      if (error.data?.data) {
+        const fieldErrors = Object.entries(error.data.data).map(([field, fieldError]: [string, any]) => {
+          return `${field}: ${fieldError.message || fieldError.code || fieldError}`;
+        }).join(', ');
+        throw new Error(`Registration failed - ${fieldErrors}`);
+      }
+      
+      throw new Error(error.data?.message || 'Registration failed');
+    }
+  },
+
+  // 로그아웃
+  logout(): void {
+    pb.authStore.clear();
+    console.log('User logged out');
+  },
+
+  // 인증 상태 변경 리스너
+  onAuthChange(callback: (user: User | null) => void): () => void {
+    return pb.authStore.onChange((_token, model) => {
+      callback(model as unknown as User | null);
+    });
   },
 };
