@@ -21,6 +21,16 @@ export interface UploadProgress {
   progress: number;
   status: 'pending' | 'uploading' | 'completed' | 'error';
   error?: string;
+  id?: string; // 업로드된 사진의 ID
+}
+
+export interface MultiUploadState {
+  files: File[];
+  uploads: UploadProgress[];
+  currentIndex: number;
+  totalCount: number;
+  completedCount: number;
+  errorCount: number;
 }
 
 export interface GalleryViewMode {
