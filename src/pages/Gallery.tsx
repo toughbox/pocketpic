@@ -8,7 +8,7 @@ import { PhotoGrid } from '../components/PhotoGrid';
 import { UploadModal } from '../components/UploadModal';
 import { PhotoDetailModal } from '../components/PhotoDetailModal';
 import { AuthModal } from '../components/AuthModal';
-import type { Photo } from '../types';
+import type { Photo, InfiniteScrollState } from '../types';
 import { theme } from '../styles/theme';
 import { photoService, authService } from '../lib/pocketbase';
 import pb from '../lib/pocketbase';
@@ -210,22 +210,59 @@ export const Gallery: FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // 무한 스크롤 상태
+  const [scrollState, setScrollState] = useState<InfiniteScrollState>({
+    currentPage: 1,
+    hasMore: true,
+    isLoadingMore: false,
+  });
 
-  // PocketBase에서 사진 데이터 로드
+  // 첫 페이지 사진 데이터 로드
   const loadPhotos = async () => {
     try {
-      console.log('Reloading photos...');
+      console.log('Loading first page photos...');
       setIsLoading(true);
       setError(null);
-      const records = await photoService.getPhotos();
-      const transformedPhotos = records.map(transformPhoto);
-      console.log('Reloaded photos:', transformedPhotos.length);
+      const result = await photoService.getPhotos(1, 50);
+      const transformedPhotos = result.items.map(transformPhoto);
+      console.log('Loaded first page photos:', transformedPhotos.length);
       setPhotos(transformedPhotos);
+      setScrollState({
+        currentPage: 1,
+        hasMore: result.page < result.totalPages,
+        isLoadingMore: false,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load photos');
       console.error('Error loading photos:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 추가 페이지 사진 데이터 로드 (무한 스크롤)
+  const loadMorePhotos = async () => {
+    if (!scrollState.hasMore || scrollState.isLoadingMore) return;
+
+    try {
+      console.log('Loading more photos...', scrollState.currentPage + 1);
+      setScrollState(prev => ({ ...prev, isLoadingMore: true }));
+      
+      const nextPage = scrollState.currentPage + 1;
+      const result = await photoService.getPhotos(nextPage, 50);
+      const transformedPhotos = result.items.map(transformPhoto);
+      
+      console.log('Loaded more photos:', transformedPhotos.length);
+      setPhotos(prevPhotos => [...prevPhotos, ...transformedPhotos]);
+      setScrollState({
+        currentPage: nextPage,
+        hasMore: result.page < result.totalPages,
+        isLoadingMore: false,
+      });
+    } catch (err) {
+      console.error('Error loading more photos:', err);
+      setScrollState(prev => ({ ...prev, isLoadingMore: false }));
     }
   };
 
@@ -251,12 +288,17 @@ export const Gallery: FC = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const records = await photoService.getPhotos();
+        const result = await photoService.getPhotos(1, 50);
         
         if (!isCancelled) {
-          const transformedPhotos = records.map(transformPhoto);
+          const transformedPhotos = result.items.map(transformPhoto);
           console.log('Loaded photos:', transformedPhotos.length);
           setPhotos(transformedPhotos);
+          setScrollState({
+            currentPage: 1,
+            hasMore: result.page < result.totalPages,
+            isLoadingMore: false,
+          });
         }
       } catch (err: any) {
         if (!isCancelled) {
@@ -296,6 +338,23 @@ export const Gallery: FC = () => {
       unsubscribe();
     };
   }, []);
+
+  // 무한 스크롤 이벤트 리스너
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+        document.documentElement.offsetHeight - 1000 // 1000px 전에 미리 로드
+      ) {
+        if (scrollState.hasMore && !scrollState.isLoadingMore && !isLoading) {
+          loadMorePhotos();
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [scrollState.hasMore, scrollState.isLoadingMore, isLoading]);
 
   const handleUploadClick = () => {
     if (!isAuthenticated) {
@@ -443,11 +502,47 @@ export const Gallery: FC = () => {
             <p>Loading photos...</p>
           </div>
         ) : (
-          <PhotoGrid 
-            photos={photos} 
-            onPhotoClick={handlePhotoClick}
-            onUploadClick={handleUploadClick}
-          />
+          <>
+            <PhotoGrid 
+              photos={photos} 
+              onPhotoClick={handlePhotoClick}
+              onUploadClick={handleUploadClick}
+            />
+            
+            {/* 무한 스크롤 로딩 인디케이터 */}
+            {scrollState.isLoadingMore && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: theme.spacing.xl,
+                color: theme.colors.text.secondary
+              }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  border: `3px solid ${theme.colors.background.secondary}`,
+                  borderTop: `3px solid ${theme.colors.primary}`,
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                  marginRight: theme.spacing.md
+                }}></div>
+                Loading more photos...
+              </div>
+            )}
+            
+            {/* 더 이상 로드할 사진이 없을 때 */}
+            {!scrollState.hasMore && photos.length > 0 && (
+              <div style={{
+                textAlign: 'center',
+                padding: theme.spacing.xl,
+                color: theme.colors.text.light,
+                fontSize: theme.typography.fontSize.sm
+              }}>
+                All photos loaded
+              </div>
+            )}
+          </>
         )}
       </GalleryContainer>
       

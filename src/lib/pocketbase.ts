@@ -116,13 +116,13 @@ export const testUpload = async (file: File) => {
 
 // PocketBase 헬퍼 함수들
 export const photoService = {
-  // 모든 사진 가져오기
-  async getPhotos() {
+  // 페이지네이션으로 사진 가져오기
+  async getPhotos(page: number = 1, perPage: number = 50) {
     try {
-      const records = await pb.collection('photos').getFullList<PhotoRecord>({
+      const result = await pb.collection('photos').getList<PhotoRecord>(page, perPage, {
         sort: '-created',
       });
-      return records;
+      return result;
     } catch (error) {
       console.error('Error fetching photos:', error);
       throw error;

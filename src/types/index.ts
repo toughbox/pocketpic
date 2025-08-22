@@ -45,3 +45,17 @@ export interface AppState {
   isLoading: boolean;
   error?: string;
 }
+
+export interface PaginationResult<T> {
+  items: T[];
+  page: number;
+  perPage: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface InfiniteScrollState {
+  currentPage: number;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+}

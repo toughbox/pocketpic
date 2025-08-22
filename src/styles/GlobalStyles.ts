@@ -173,6 +173,15 @@ export const GlobalStyles = createGlobalStyle`
     }
   }
 
+  @keyframes spin {
+    0% { 
+      transform: rotate(0deg); 
+    }
+    100% { 
+      transform: rotate(360deg); 
+    }
+  }
+
   .animate-fadeIn {
     animation: fadeIn 0.6s ${theme.transitions.normal};
   }
