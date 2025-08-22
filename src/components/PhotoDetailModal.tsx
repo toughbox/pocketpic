@@ -186,24 +186,36 @@ const NavigationButton = styled(motion.button)`
   cursor: pointer;
   z-index: 10;
   transition: all ${theme.transitions.fast};
+  transform-origin: center center;
 
   &:hover {
     background: rgba(0, 0, 0, 0.8);
-    transform: translateY(-50%) scale(1.1);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   }
 
   &:disabled {
     opacity: 0.3;
     cursor: not-allowed;
-    
-    &:hover {
-      transform: translateY(-50%);
-    }
   }
 
   svg {
     width: 24px;
     height: 24px;
+    transition: all ${theme.transitions.fast};
+  }
+
+  &:hover:not(:disabled) svg {
+    transform: scale(1.1);
+  }
+
+  &:active:not(:disabled) {
+    background: rgba(0, 0, 0, 0.9);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+  }
+
+  &:active:not(:disabled) svg {
+    transform: scale(0.95);
   }
 
   @media (max-width: ${theme.breakpoints.mobile}) {
@@ -435,8 +447,6 @@ export const PhotoDetailModal: FC<PhotoDetailModalProps> = ({
               {hasPrev && (
                 <PrevButton
                   onClick={handlePrev}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
                   title="이전 사진"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -448,8 +458,6 @@ export const PhotoDetailModal: FC<PhotoDetailModalProps> = ({
               {hasNext && (
                 <NextButton
                   onClick={handleNext}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
                   title="다음 사진"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
