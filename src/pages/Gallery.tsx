@@ -257,11 +257,25 @@ export const Gallery: FC = () => {
       const result = await photoService.getPhotos(1, 50);
       const transformedPhotos = result.items.map(transformPhoto);
       console.log('Loaded first page photos:', transformedPhotos.length);
-      setPhotos(transformedPhotos);
-      setScrollState({
-        currentPage: 1,
-        hasMore: result.page < result.totalPages,
-        isLoadingMore: false,
+      
+      // 첫 페이지 이미지들도 프리로딩
+      const imagePromises = transformedPhotos.map(photo => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(photo);
+          img.onerror = () => resolve(photo);
+          img.src = photo.thumbnailUrl || photo.url || '';
+        });
+      });
+      
+      Promise.all(imagePromises).then(() => {
+        console.log(`All ${transformedPhotos.length} first page images preloaded`);
+        setPhotos(transformedPhotos);
+        setScrollState({
+          currentPage: 1,
+          hasMore: result.page < result.totalPages,
+          isLoadingMore: false,
+        });
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load photos');
@@ -286,12 +300,30 @@ export const Gallery: FC = () => {
         const transformedPhotos = result.items.map(transformPhoto);
         console.log(`Loaded ${transformedPhotos.length} more photos for page ${nextPage}`);
         
-        // 사진 로딩 완료 후 즉시 업데이트
-        setPhotos(prevPhotos => [...prevPhotos, ...transformedPhotos]);
-        setScrollState({
-          currentPage: nextPage,
-          hasMore: result.page < result.totalPages,
-          isLoadingMore: false,
+        // 이미지 프리로딩 - 실제 이미지 파일들을 미리 로드
+        const imagePromises = transformedPhotos.map(photo => {
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(photo);
+            img.onerror = () => resolve(photo); // 에러가 나도 계속 진행
+            img.src = photo.thumbnailUrl || photo.url || '';
+          });
+        });
+        
+        // 모든 이미지가 로드되면 사진 목록 업데이트
+        Promise.all(imagePromises).then(() => {
+          console.log(`All ${transformedPhotos.length} images preloaded for page ${nextPage}`);
+          // 사진들을 미리 준비해둔 상태로 한번에 추가
+          setPhotos(prevPhotos => {
+            const newPhotos = [...prevPhotos, ...transformedPhotos];
+            console.log(`Total photos now: ${newPhotos.length}`);
+            return newPhotos;
+          });
+          setScrollState({
+            currentPage: nextPage,
+            hasMore: result.page < result.totalPages,
+            isLoadingMore: false,
+          });
         });
       } else {
         console.log('No more photos to load');
@@ -334,11 +366,27 @@ export const Gallery: FC = () => {
         if (!isCancelled) {
           const transformedPhotos = result.items.map(transformPhoto);
           console.log('Loaded photos:', transformedPhotos.length);
-          setPhotos(transformedPhotos);
-          setScrollState({
-            currentPage: 1,
-            hasMore: result.page < result.totalPages,
-            isLoadingMore: false,
+          
+          // 이미지 프리로딩
+          const imagePromises = transformedPhotos.map(photo => {
+            return new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => resolve(photo);
+              img.onerror = () => resolve(photo);
+              img.src = photo.thumbnailUrl || photo.url || '';
+            });
+          });
+          
+          Promise.all(imagePromises).then(() => {
+            if (!isCancelled) {
+              console.log(`All ${transformedPhotos.length} initial images preloaded`);
+              setPhotos(transformedPhotos);
+              setScrollState({
+                currentPage: 1,
+                hasMore: result.page < result.totalPages,
+                isLoadingMore: false,
+              });
+            }
           });
         }
       } catch (err: any) {
@@ -548,47 +596,67 @@ export const Gallery: FC = () => {
               onUploadClick={handleUploadClick}
             />
             
-            {/* 무한 스크롤 로딩 인디케이터 - 화면 하단 고정 */}
+            {/* 무한 스크롤 로딩 인디케이터 - 화면 중앙 오버레이 */}
             <AnimatePresence>
               {scrollState.isLoadingMore && (
                 <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 50 }}
-                  transition={{ duration: 0.3 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
                   style={{
                     position: 'fixed',
-                    bottom: '20px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.3)',
                     display: 'flex',
                     alignItems: 'center',
-                    padding: `${theme.spacing.md} ${theme.spacing.xl}`,
+                    justifyContent: 'center',
+                    zIndex: 9999,
+                    backdropFilter: 'blur(2px)'
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    padding: `${theme.spacing.xl} ${theme.spacing.xxl}`,
                     background: theme.colors.background.secondary,
                     borderRadius: theme.borderRadius.xl,
                     border: `1px solid ${theme.colors.border}`,
                     boxShadow: theme.shadows.xl,
-                    zIndex: 1000,
                     backdropFilter: 'blur(10px)'
-                  }}
-                >
-                  <div style={{
-                    width: '24px',
-                    height: '24px',
-                    border: `3px solid ${theme.colors.background.tertiary}`,
-                    borderTop: `3px solid ${theme.colors.primary}`,
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    marginRight: theme.spacing.md
-                  }}></div>
-                  
-                  <span style={{
-                    color: theme.colors.text.primary,
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium
                   }}>
-                    사진 로딩 중...
-                  </span>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      border: `4px solid ${theme.colors.background.tertiary}`,
+                      borderTop: `4px solid ${theme.colors.primary}`,
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                      marginBottom: theme.spacing.lg
+                    }}></div>
+                    
+                    <span style={{
+                      color: theme.colors.text.primary,
+                      fontSize: theme.typography.fontSize.lg,
+                      fontWeight: theme.typography.fontWeight.medium,
+                      textAlign: 'center'
+                    }}>
+                      사진 로딩 중...
+                    </span>
+                    
+                    <span style={{
+                      color: theme.colors.text.secondary,
+                      fontSize: theme.typography.fontSize.sm,
+                      textAlign: 'center',
+                      marginTop: theme.spacing.sm
+                    }}>
+                      이미지를 준비하고 있습니다
+                    </span>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
