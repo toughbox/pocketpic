@@ -449,6 +449,7 @@ export const Gallery: FC = () => {
         isOpen={!!selectedPhoto}
         onClose={() => setSelectedPhoto(null)}
         onDelete={handlePhotoDelete}
+        onPhotoChange={setSelectedPhoto}
       />
       
       <AuthModal

@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { theme } from '../styles/theme';
@@ -231,6 +231,7 @@ interface PhotoDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDelete?: (photo: Photo) => void;
+  onPhotoChange?: (photo: Photo) => void;
 }
 
 export const PhotoDetailModal: FC<PhotoDetailModalProps> = ({
@@ -238,33 +239,62 @@ export const PhotoDetailModal: FC<PhotoDetailModalProps> = ({
   photos,
   isOpen,
   onClose,
-  onDelete
+  onDelete,
+  onPhotoChange
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  if (!photo) return null;
-
-  const currentIndex = photos.findIndex(p => p.id === photo.id);
+  const currentIndex = photo ? photos.findIndex(p => p.id === photo.id) : -1;
   const hasPrev = currentIndex > 0;
-  const hasNext = currentIndex < photos.length - 1;
+  const hasNext = currentIndex >= 0 && currentIndex < photos.length - 1;
 
-  const handlePrev = () => {
-    if (hasPrev) {
-      // 이전 사진으로 변경 (일단 닫기만 구현, 나중에 개선 가능)
-      onClose();
+  const handlePrev = useCallback(() => {
+    if (hasPrev && onPhotoChange && photo) {
+      const prevPhoto = photos[currentIndex - 1];
+      onPhotoChange(prevPhoto);
+      setImageLoaded(false); // 새 이미지 로딩 상태로 리셋
     }
-  };
+  }, [hasPrev, onPhotoChange, photos, currentIndex, photo]);
 
-  const handleNext = () => {
-    if (hasNext) {
-      // 다음 사진으로 변경 (일단 닫기만 구현, 나중에 개선 가능)
-      onClose();
+  const handleNext = useCallback(() => {
+    if (hasNext && onPhotoChange && photo) {
+      const nextPhoto = photos[currentIndex + 1];
+      onPhotoChange(nextPhoto);
+      setImageLoaded(false); // 새 이미지 로딩 상태로 리셋
     }
-  };
+  }, [hasNext, onPhotoChange, photos, currentIndex, photo]);
+
+  // 키보드 이벤트 핸들러
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+      
+      switch (e.key) {
+        case 'ArrowLeft':
+          e.preventDefault();
+          handlePrev();
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          handleNext();
+          break;
+        case 'Escape':
+          e.preventDefault();
+          onClose();
+          break;
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handlePrev, handleNext, onClose]);
 
   const handleDelete = async () => {
-    if (!onDelete || isDeleting) return;
+    if (!onDelete || isDeleting || !photo) return;
     
     const confirmed = window.confirm('이 사진을 삭제하시겠습니까?');
     if (!confirmed) return;
@@ -283,6 +313,8 @@ export const PhotoDetailModal: FC<PhotoDetailModalProps> = ({
   };
 
   const handleDownload = () => {
+    if (!photo) return;
+    
     const link = document.createElement('a');
     link.href = photo.url || '';
     link.download = photo.title || `photo-${photo.id}`;
@@ -307,6 +339,10 @@ export const PhotoDetailModal: FC<PhotoDetailModalProps> = ({
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
+
+  if (!photo) {
+    return null;
+  }
 
   return (
     <AnimatePresence>
