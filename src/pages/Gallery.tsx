@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Layout } from '../components/Layout';
 import { PhotoGrid } from '../components/PhotoGrid';
 
@@ -12,6 +12,7 @@ import type { Photo, InfiniteScrollState } from '../types';
 import { theme } from '../styles/theme';
 import { photoService, authService } from '../lib/pocketbase';
 import pb from '../lib/pocketbase';
+import type { PhotoRecord } from '../lib/pocketbase';
 
 const GalleryContainer = styled.div`
   flex: 1;
@@ -192,14 +193,43 @@ const FilterButton = styled(motion.button)<{ $active?: boolean }>`
 `;
 
 // PocketBase 데이터를 UI용 Photo 타입으로 변환
-const transformPhoto = (record: any): Photo => ({
-  ...record,
-  url: pb.files.getUrl(record, record.image),
-  thumbnailUrl: record.thumbnail 
-    ? pb.files.getUrl(record, record.thumbnail)
-    : pb.files.getUrl(record, record.image, { thumb: '400x400' }),
-  uploadedAt: new Date(record.created),
-});
+const transformPhoto = (record: PhotoRecord): Photo => {
+  console.log('Transforming photo record:', record);
+  
+  // PocketBase URL 생성 - collection과 record ID, 파일명 필요
+  let baseUrl = '';
+  let thumbnailUrl = '';
+  
+  if (record.image) {
+    try {
+      // 올바른 PocketBase URL 생성 방식
+      baseUrl = `${pb.baseUrl}/api/files/${record.collectionId || record.collectionName || 'photos'}/${record.id}/${record.image}`;
+      thumbnailUrl = `${pb.baseUrl}/api/files/${record.collectionId || record.collectionName || 'photos'}/${record.id}/${record.image}?thumb=400x400`;
+      
+      console.log('Generated URLs:', { baseUrl, thumbnailUrl });
+    } catch (error) {
+      console.error('Error generating URLs for record:', record, error);
+    }
+  } else {
+    console.warn('No image field in record:', record);
+  }
+  
+  return {
+    id: record.id,
+    title: record.title || '',
+    description: record.description || '',
+    image: record.image,
+    size: record.size,
+    mimeType: record.mimeType,
+    width: record.width,
+    height: record.height,
+    created: record.created,
+    updated: record.updated,
+    url: baseUrl,
+    thumbnailUrl: thumbnailUrl,
+    uploadedAt: new Date(record.created),
+  };
+};
 
 export const Gallery: FC = () => {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -251,15 +281,26 @@ export const Gallery: FC = () => {
       
       const nextPage = scrollState.currentPage + 1;
       const result = await photoService.getPhotos(nextPage, 50);
-      const transformedPhotos = result.items.map(transformPhoto);
       
-      console.log('Loaded more photos:', transformedPhotos.length);
-      setPhotos(prevPhotos => [...prevPhotos, ...transformedPhotos]);
-      setScrollState({
-        currentPage: nextPage,
-        hasMore: result.page < result.totalPages,
-        isLoadingMore: false,
-      });
+      if (result.items.length > 0) {
+        const transformedPhotos = result.items.map(transformPhoto);
+        console.log(`Loaded ${transformedPhotos.length} more photos for page ${nextPage}`);
+        
+        // 사진 로딩 완료 후 즉시 업데이트
+        setPhotos(prevPhotos => [...prevPhotos, ...transformedPhotos]);
+        setScrollState({
+          currentPage: nextPage,
+          hasMore: result.page < result.totalPages,
+          isLoadingMore: false,
+        });
+      } else {
+        console.log('No more photos to load');
+        setScrollState(prev => ({
+          ...prev,
+          hasMore: false,
+          isLoadingMore: false,
+        }));
+      }
     } catch (err) {
       console.error('Error loading more photos:', err);
       setScrollState(prev => ({ ...prev, isLoadingMore: false }));
@@ -342,10 +383,8 @@ export const Gallery: FC = () => {
   // 무한 스크롤 이벤트 리스너
   useEffect(() => {
     const handleScroll = () => {
-      if (
-        window.innerHeight + document.documentElement.scrollTop >=
-        document.documentElement.offsetHeight - 1000 // 1000px 전에 미리 로드
-      ) {
+      // 스크롤이 맨 밑에 도달했는지 확인
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
         if (scrollState.hasMore && !scrollState.isLoadingMore && !isLoading) {
           loadMorePhotos();
         }
@@ -509,38 +548,100 @@ export const Gallery: FC = () => {
               onUploadClick={handleUploadClick}
             />
             
-            {/* 무한 스크롤 로딩 인디케이터 */}
-            {scrollState.isLoadingMore && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: theme.spacing.xl,
-                color: theme.colors.text.secondary
-              }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  border: `3px solid ${theme.colors.background.secondary}`,
-                  borderTop: `3px solid ${theme.colors.primary}`,
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                  marginRight: theme.spacing.md
-                }}></div>
-                Loading more photos...
-              </div>
-            )}
+            {/* 무한 스크롤 로딩 인디케이터 - 화면 하단 고정 */}
+            <AnimatePresence>
+              {scrollState.isLoadingMore && (
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 50 }}
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: `${theme.spacing.md} ${theme.spacing.xl}`,
+                    background: theme.colors.background.secondary,
+                    borderRadius: theme.borderRadius.xl,
+                    border: `1px solid ${theme.colors.border}`,
+                    boxShadow: theme.shadows.xl,
+                    zIndex: 1000,
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    border: `3px solid ${theme.colors.background.tertiary}`,
+                    borderTop: `3px solid ${theme.colors.primary}`,
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    marginRight: theme.spacing.md
+                  }}></div>
+                  
+                  <span style={{
+                    color: theme.colors.text.primary,
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.medium
+                  }}>
+                    사진 로딩 중...
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             {/* 더 이상 로드할 사진이 없을 때 */}
             {!scrollState.hasMore && photos.length > 0 && (
-              <div style={{
-                textAlign: 'center',
-                padding: theme.spacing.xl,
-                color: theme.colors.text.light,
-                fontSize: theme.typography.fontSize.sm
-              }}>
-                All photos loaded
-              </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: theme.spacing.xl,
+                  margin: `${theme.spacing.lg} 0`,
+                  background: theme.colors.background.secondary,
+                  borderRadius: theme.borderRadius.xl,
+                  border: `1px solid ${theme.colors.border}`,
+                  boxShadow: theme.shadows.sm
+                }}
+              >
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  background: theme.colors.gradient.primary,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: theme.spacing.md,
+                  boxShadow: theme.shadows.glow
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                    <polyline points="20,6 9,17 4,12"/>
+                  </svg>
+                </div>
+                
+                <div style={{
+                  color: theme.colors.text.primary,
+                  fontSize: theme.typography.fontSize.md,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  marginBottom: theme.spacing.xs
+                }}>
+                  모든 사진을 불러왔습니다
+                </div>
+                
+                <div style={{
+                  color: theme.colors.text.secondary,
+                  fontSize: theme.typography.fontSize.sm
+                }}>
+                  총 {photos.length}개의 사진
+                </div>
+              </motion.div>
             )}
           </>
         )}

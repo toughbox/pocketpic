@@ -10,6 +10,8 @@ export default pb;
 // PocketBase 타입 정의
 export interface PhotoRecord {
   id: string;
+  collectionId: string;
+  collectionName: string;
   title?: string;
   description?: string;
   image: string;
@@ -116,12 +118,23 @@ export const testUpload = async (file: File) => {
 
 // PocketBase 헬퍼 함수들
 export const photoService = {
-  // 페이지네이션으로 사진 가져오기
+  // 페이지네이션으로 사진 가져오기 (최적화된 버전)
   async getPhotos(page: number = 1, perPage: number = 50) {
     try {
+      console.log(`Loading page ${page} with ${perPage} photos...`);
+      const startTime = performance.now();
+      
       const result = await pb.collection('photos').getList<PhotoRecord>(page, perPage, {
         sort: '-created',
+        // 필요한 필드만 선택하여 전송량 줄이기
+        fields: 'id,title,description,image,size,mimeType,width,height,created,updated',
+        // 캐시 활용
+        requestKey: `photos_page_${page}_${perPage}`,
       });
+      
+      const endTime = performance.now();
+      console.log(`Page ${page} loaded in ${(endTime - startTime).toFixed(2)}ms`);
+      
       return result;
     } catch (error) {
       console.error('Error fetching photos:', error);

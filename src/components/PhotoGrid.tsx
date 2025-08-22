@@ -326,11 +326,45 @@ export const PhotoGrid: FC<PhotoGridProps> = ({ photos, onPhotoClick, onUploadCl
           transition={{ delay: index * 0.1, duration: 0.6 }}
           whileHover={{ y: -8 }}
         >
-          <PhotoImage
-            src={photo.thumbnailUrl || photo.url}
-            alt={photo.title || 'Photo'}
-            loading="lazy"
-          />
+{(photo.thumbnailUrl || photo.url) ? (
+            <PhotoImage
+              src={photo.thumbnailUrl || photo.url}
+              alt={photo.title || 'Photo'}
+              loading="lazy"
+              decoding="async"
+              onLoad={(e) => {
+                // 이미지 로드 완료시 페이드인 효과
+                e.currentTarget.style.opacity = '1';
+              }}
+              onError={(e) => {
+                // 이미지 로드 실패시 대체 이미지
+                console.warn('Failed to load image:', photo.id);
+                e.currentTarget.style.opacity = '0.5';
+              }}
+              style={{ 
+                opacity: '0',
+                transition: 'opacity 0.3s ease-in-out'
+              }}
+            />
+          ) : (
+            // URL이 없을 때 플레이스홀더 표시
+            <div style={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: theme.colors.background.secondary,
+              borderRadius: theme.borderRadius.lg,
+              color: theme.colors.text.secondary
+            }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21,15 16,10 5,21"/>
+              </svg>
+            </div>
+          )}
           <PhotoOverlay />
           
           <PhotoActions>
