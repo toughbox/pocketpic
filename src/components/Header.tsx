@@ -12,7 +12,7 @@ const HeaderContainer = styled.header`
   ${theme.effects.glassEffect}
   background: ${theme.colors.background.glass};
   border-bottom: 1px solid ${theme.colors.border};
-  padding: ${theme.spacing.lg} ${theme.spacing.xl};
+  padding: ${theme.spacing.lg} ${theme.spacing.md};
   backdrop-filter: ${theme.effects.backdropBlur};
   -webkit-backdrop-filter: ${theme.effects.backdropBlur};
 
@@ -27,8 +27,16 @@ const HeaderContainer = styled.header`
     opacity: 0.6;
   }
 
+  @media (max-width: ${theme.breakpoints.desktop}) {
+    padding: ${theme.spacing.lg} ${theme.spacing.sm};
+  }
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
+    padding: ${theme.spacing.md} ${theme.spacing.xs};
+  }
+
   @media (max-width: ${theme.breakpoints.mobile}) {
-    padding: ${theme.spacing.md} ${theme.spacing.lg};
+    padding: ${theme.spacing.md} ${theme.spacing.xs};
   }
 `;
 
@@ -36,8 +44,7 @@ const HeaderContent = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
 `;
 
 const LogoSection = styled(motion.div)`

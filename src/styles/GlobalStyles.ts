@@ -13,6 +13,9 @@ export const GlobalStyles = createGlobalStyle`
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
+    width: 100%;
+    margin: 0;
+    padding: 0;
   }
 
   body {
@@ -26,13 +29,19 @@ export const GlobalStyles = createGlobalStyle`
       radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
       radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.1) 0%, transparent 50%);
     min-height: 100vh;
+    width: 100%;
     overflow-x: hidden;
+    margin: 0;
+    padding: 0;
   }
 
   #root {
     min-height: 100vh;
+    width: 100%;
     display: flex;
     flex-direction: column;
+    margin: 0;
+    padding: 0;
   }
 
   /* 선택 텍스트 스타일 */

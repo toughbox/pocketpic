@@ -17,23 +17,37 @@ const GalleryContainer = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: ${theme.spacing.xl} 0;
+  padding: ${theme.spacing.sm} ${theme.spacing.md};
+
+  @media (max-width: ${theme.breakpoints.desktop}) {
+    padding: ${theme.spacing.sm} ${theme.spacing.sm};
+  }
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
+    padding: ${theme.spacing.sm} ${theme.spacing.xs};
+  }
+
+  @media (max-width: ${theme.breakpoints.mobile}) {
+    padding: ${theme.spacing.sm} ${theme.spacing.xs};
+  }
 `;
 
 const GalleryHeader = styled(motion.div)`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${theme.spacing['3xl']};
-  padding-bottom: ${theme.spacing.xl};
+  justify-content: center;
+  margin-bottom: ${theme.spacing.xl};
+  padding-bottom: ${theme.spacing.md};
   border-bottom: 1px solid ${theme.colors.border};
   position: relative;
+  text-align: center;
 
   &::after {
     content: '';
     position: absolute;
     bottom: -1px;
-    left: 0;
+    left: 50%;
+    transform: translateX(-50%);
     width: 100px;
     height: 2px;
     background: ${theme.colors.gradient.primary};
@@ -41,10 +55,10 @@ const GalleryHeader = styled(motion.div)`
   }
 
   @media (max-width: ${theme.breakpoints.mobile}) {
-    margin-bottom: ${theme.spacing.xl};
+    margin-bottom: ${theme.spacing.lg};
     flex-direction: column;
-    align-items: flex-start;
-    gap: ${theme.spacing.md};
+    align-items: center;
+    gap: ${theme.spacing.sm};
   }
 `;
 
@@ -52,6 +66,7 @@ const TitleSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${theme.spacing.sm};
+  text-align: center;
 `;
 
 const GalleryTitle = styled.h1`
@@ -85,12 +100,13 @@ const GallerySubtitle = styled.p`
 const StatsSection = styled.div`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: ${theme.spacing.xl};
+  margin-top: ${theme.spacing.lg};
 
   @media (max-width: ${theme.breakpoints.mobile}) {
     gap: ${theme.spacing.lg};
-    align-self: stretch;
-    justify-content: space-between;
+    justify-content: center;
   }
 `;
 
@@ -376,28 +392,28 @@ export const Gallery: FC = () => {
             <GallerySubtitle>
               Your personal photo collection, beautifully organized
             </GallerySubtitle>
+            
+            <StatsSection>
+              <StatCard
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                whileHover={{ scale: 1.05 }}
+              >
+                <StatNumber>{photos.length}</StatNumber>
+                <StatLabel>Photos</StatLabel>
+              </StatCard>
+              <StatCard
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                whileHover={{ scale: 1.05 }}
+              >
+                <StatNumber>{formatSize(totalSize)}</StatNumber>
+                <StatLabel>Storage</StatLabel>
+              </StatCard>
+            </StatsSection>
           </TitleSection>
-          
-          <StatsSection>
-            <StatCard
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              whileHover={{ scale: 1.05 }}
-            >
-              <StatNumber>{photos.length}</StatNumber>
-              <StatLabel>Photos</StatLabel>
-            </StatCard>
-            <StatCard
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              whileHover={{ scale: 1.05 }}
-            >
-              <StatNumber>{formatSize(totalSize)}</StatNumber>
-              <StatLabel>Storage</StatLabel>
-            </StatCard>
-          </StatsSection>
         </GalleryHeader>
 
         <FilterSection

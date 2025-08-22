@@ -6,19 +6,19 @@ import type { Photo } from '../types';
 
 const GridContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: ${theme.spacing.xl};
-  padding: ${theme.spacing.xl} 0;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: ${theme.spacing.sm};
+  padding: ${theme.spacing.sm} 0;
 
   @media (max-width: ${theme.breakpoints.tablet}) {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: ${theme.spacing.lg};
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: ${theme.spacing.xs};
   }
 
   @media (max-width: ${theme.breakpoints.mobile}) {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: ${theme.spacing.md};
-    padding: ${theme.spacing.lg} 0;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: ${theme.spacing.xs};
+    padding: ${theme.spacing.xs} 0;
   }
 `;
 

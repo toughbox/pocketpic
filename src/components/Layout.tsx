@@ -32,22 +32,18 @@ const MainContent = styled(motion.main)`
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0 ${theme.spacing['3xl']};
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 0;
+  max-width: none;
+  margin: 0;
   width: 100%;
   position: relative;
 
-  @media (max-width: ${theme.breakpoints.desktop}) {
-    padding: 0 ${theme.spacing.xl};
-  }
-
   @media (max-width: ${theme.breakpoints.tablet}) {
-    padding: 0 ${theme.spacing.lg};
+    padding: 0 ${theme.spacing.xs};
   }
 
   @media (max-width: ${theme.breakpoints.mobile}) {
-    padding: 0 ${theme.spacing.md};
+    padding: 0 ${theme.spacing.xs};
   }
 `;
 
