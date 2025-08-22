@@ -55,11 +55,10 @@ const ModalTitle = styled.h2`
 `;
 
 const CloseButton = styled(motion.button)`
-  width: 40px;
-  height: 40px;
-  border-radius: ${theme.borderRadius.round};
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: auto;
+  height: auto;
+  background: none;
+  border: none;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -68,23 +67,20 @@ const CloseButton = styled(motion.button)`
   transition: all ${theme.transitions.fast};
   flex-shrink: 0;
   position: relative;
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  font-family: Arial, sans-serif;
+  padding: ${theme.spacing.sm};
 
   &:hover {
-    background: rgba(255, 255, 255, 0.25);
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: scale(1.05);
+    color: rgba(255, 255, 255, 0.7);
+    transform: scale(1.1);
   }
 
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-  }
-
-  svg {
-    width: 20px;
-    height: 20px;
-    fill: currentColor;
   }
 `;
 
@@ -605,9 +601,7 @@ export const UploadModal: FC<UploadModalProps> = ({ isOpen, onClose, onUploadCom
                 whileTap={{ scale: 0.9 }}
                 disabled={isUploading}
               >
-                <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                  <path d="M18.3 5.71a.996.996 0 0 0-1.41 0L12 10.59 7.11 5.7A.996.996 0 1 0 5.7 7.11L10.59 12 5.7 16.89a.996.996 0 1 0 1.41 1.41L12 13.41l4.89 4.89a.996.996 0 0 0 1.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z"/>
-                </svg>
+                ×
               </CloseButton>
             </ModalHeader>
 
